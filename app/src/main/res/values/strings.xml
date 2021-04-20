@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">TestApp</string>
+    <string name="label_login">Логин</string>
+    <string name="action_sign_in">Войти</string>
+    <string name="label_password">Пароль</string>
+    <string name="label_incorrect_data">Неверный логин или пароль.</string>
+    <string name="label_success">Вы авторизованы</string>
+</resources>
