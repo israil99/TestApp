@@ -1,64 +1,87 @@
 package kg.izapp.testapp.ui.login
 
 import android.annotation.SuppressLint
-import android.content.res.ColorStateList
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
 import kg.izapp.testapp.R
 import kg.izapp.testapp.data.Event
+import kg.izapp.testapp.data.TestApiHelper
 import kg.izapp.testapp.ui.main.MainActivity
 import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var loginViewModel: LoginViewModel
+    private lateinit var apihelper: TestApiHelper
+    private var progressBarIsShowing = false
 
     @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-        loginViewModel = ViewModelProviders.of(this).get(LoginViewModel::class.java)
+        apihelper = TestApiHelper()
         subscribeToLiveData()
         setupViews()
     }
 
     @SuppressLint("RestrictedApi")
     private fun subscribeToLiveData() {
-        loginViewModel.event.observe(this, Observer {
+        apihelper.event.observe(this, Observer {
             when (it) {
                 is Event.InCorrectData -> {
-                    username.isErrorEnabled = true
-                    inp_username.supportBackgroundTintList =
-                        ColorStateList.valueOf(resources.getColor(R.color.red))
-                    password.isErrorEnabled = true
-                    inp_password.supportBackgroundTintList =
-                        ColorStateList.valueOf(resources.getColor(R.color.red))
-                    password.error = getString(R.string.label_incorrect_data)
+                    progressBarIsShowing = false
+                    loading.visibility = View.GONE
+                    Toast.makeText(
+                        this,
+                        getString(R.string.label_incorrect_data),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
                 is Event.SuccessLogin -> {
+                    progressBarIsShowing = false
+                    loading.visibility = View.GONE
                     MainActivity.start(this)
                 }
             }
         })
     }
 
+    override fun onBackPressed() {
+        Thread.currentThread().interrupt()
+        super.onBackPressed()
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        if (savedInstanceState.getBoolean("progressBarIsShowing")) {
+            loading.visibility = View.VISIBLE
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        super.onSaveInstanceState(outState)
+        if (progressBarIsShowing) {
+            outState.putBoolean("progressBarIsShowing", progressBarIsShowing)
+        }
+    }
+
     private fun setupViews() {
         inp_username.addTextChangedListener(getTextWatcher())
         inp_password.addTextChangedListener(getTextWatcher())
         login.setOnClickListener {
+            progressBarIsShowing = true
             loading.visibility = View.VISIBLE
             login.postDelayed({
-                loading.visibility = View.GONE
-                loginViewModel.checkUserData(
+                apihelper.isValidData(
                     username.editText?.text.toString().trim(),
                     password.editText?.text.toString().trim()
                 )
-            }, 2000)
+            }, 0)
         }
     }
 
@@ -78,4 +101,5 @@ class LoginActivity : AppCompatActivity() {
                 && password.editText?.text.toString().trim().isNotEmpty()
         password.error = ""
     }
+
 }
